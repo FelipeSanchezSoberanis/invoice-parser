@@ -35,29 +35,25 @@ def get_invoice_data(invoice: str):
     concept = None
 
     tree = ET.parse(invoice)
+    BASE_PATH = "cfdi:Complemento/nomina12:Nomina"
+    payroll = tree.find(BASE_PATH, NS)
+    perceptions = tree.find(f"{BASE_PATH}/nomina12:Percepciones", NS)
+    perception = tree.find(f"{BASE_PATH}/nomina12:Percepciones/nomina12:Percepcion", NS)
+    deductions = tree.find(f"{BASE_PATH}/nomina12:Deducciones", NS)
 
-    complement = tree.find("cfdi:Complemento", NS)
-    if complement is not None:
-        payroll = complement.find("nomina12:Nomina", NS)
-        if payroll is not None:
-            date = payroll.get("FechaPago")
-            start_date = payroll.get("FechaInicialPago")
-            end_date = payroll.get("FechaFinalPago")
-            days = payroll.get("NumDiasPagados")
-
-            perceptions = payroll.find("nomina12:Percepciones", NS)
-            if perceptions is not None:
-                total = perceptions.get("TotalSueldos")
-                aggravated = perceptions.get("TotalGravado")
-                exempt = perceptions.get("TotalExento")
-                perception = perceptions.find("nomina12:Percepcion", NS)
-
-                if perception is not None:
-                    concept = perception.get("Concepto")
-
-            deductions = payroll.find("nomina12:Deducciones", NS)
-            if deductions is not None:
-                retentions = deductions.get("TotalImpuestosRetenidos")
+    if payroll is not None:
+        date = payroll.get("FechaPago")
+        start_date = payroll.get("FechaInicialPago")
+        end_date = payroll.get("FechaFinalPago")
+        days = payroll.get("NumDiasPagados")
+    if perceptions is not None:
+        total = perceptions.get("TotalSueldos")
+        aggravated = perceptions.get("TotalGravado")
+        exempt = perceptions.get("TotalExento")
+    if perception is not None:
+        concept = perception.get("Concepto")
+    if deductions is not None:
+        retentions = deductions.get("TotalImpuestosRetenidos")
 
     return {
         Header.DATE: date,
