@@ -2,7 +2,8 @@ from os.path import join
 from os import listdir
 import csv
 import xml.etree.ElementTree as ET
-from enum import StrEnum
+from enum import StrEnum, unique
+
 
 NS = {
     "cfdi": "http://www.sat.gob.mx/cfd/4",
@@ -68,10 +69,28 @@ def get_invoice_data(invoice: str):
     }
 
 
+def normalize_string(string: str) -> str:
+    return string.upper()
+
+
+def get_unique_invoices(invoices: list[str]) -> list[str]:
+    normalized_invoices = set()
+    unique_invoices = []
+
+    for invoice in invoices:
+        normalized_invoice = normalize_string(invoice)
+        if normalized_invoice not in normalized_invoices:
+            unique_invoices.append(invoice)
+            normalized_invoices.add(normalized_invoice)
+
+    return unique_invoices
+
+
 def main():
     invoices = [join("input", file) for file in listdir("input") if file.endswith(".xml")]
+    unique_invoices = get_unique_invoices(invoices)
     fieldnames = Header.__members__.values()
-    rows = [get_invoice_data(invoice) for invoice in invoices]
+    rows = [get_invoice_data(invoice) for invoice in unique_invoices]
     with open(join("output", "data.csv"), "w") as output:
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
