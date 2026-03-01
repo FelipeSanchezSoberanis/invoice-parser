@@ -2,17 +2,19 @@ from os.path import join
 from os import listdir
 import csv
 import xml.etree.ElementTree as ET
-from enum import StrEnum, unique
+from enum import StrEnum
 
 
 NS = {
     "cfdi": "http://www.sat.gob.mx/cfd/4",
     "xsi": "http://www.w3.org/2001/XMLSchema-instance",
     "nomina12": "http://www.sat.gob.mx/nomina12",
+    "tfd": "http://www.sat.gob.mx/TimbreFiscalDigital",
 }
 
 
 class Header(StrEnum):
+    UUID = "UUID"
     DATE = "Fecha"
     START_DATE = "Fecha inicio pago"
     END_DATE = "Fecha fin pago"
@@ -25,6 +27,7 @@ class Header(StrEnum):
 
 
 def get_invoice_data(invoice: str):
+    uuid = None
     date = None
     start_date = None
     end_date = None
@@ -41,7 +44,10 @@ def get_invoice_data(invoice: str):
     perceptions = tree.find(f"{BASE_PATH}/nomina12:Percepciones", NS)
     perception = tree.find(f"{BASE_PATH}/nomina12:Percepciones/nomina12:Percepcion", NS)
     deductions = tree.find(f"{BASE_PATH}/nomina12:Deducciones", NS)
+    fiscal_signature = tree.find(f"cfdi:Complemento/tfd:TimbreFiscalDigital", NS)
 
+    if fiscal_signature is not None:
+        uuid = fiscal_signature.get("UUID")
     if payroll is not None:
         date = payroll.get("FechaPago")
         start_date = payroll.get("FechaInicialPago")
@@ -57,6 +63,7 @@ def get_invoice_data(invoice: str):
         retentions = deductions.get("TotalImpuestosRetenidos")
 
     return {
+        Header.UUID: uuid,
         Header.DATE: date,
         Header.START_DATE: start_date,
         Header.END_DATE: end_date,
@@ -69,28 +76,20 @@ def get_invoice_data(invoice: str):
     }
 
 
-def normalize_string(string: str) -> str:
-    return string.upper()
-
-
-def get_unique_invoices(invoices: list[str]) -> list[str]:
-    normalized_invoices = set()
-    unique_invoices = []
-
-    for invoice in invoices:
-        normalized_invoice = normalize_string(invoice)
-        if normalized_invoice not in normalized_invoices:
-            unique_invoices.append(invoice)
-            normalized_invoices.add(normalized_invoice)
-
-    return unique_invoices
-
-
 def main():
     invoices = [join("input", file) for file in listdir("input") if file.endswith(".xml")]
-    unique_invoices = get_unique_invoices(invoices)
+
+    uuids: set[str] = set()
+    rows = []
+    for invoice in invoices:
+        invoice_data = get_invoice_data(invoice)
+        uuid = invoice_data[Header.UUID]
+        if uuid is None or uuid in uuids:
+            continue
+        uuids.add(uuid)
+        rows.append(invoice_data)
+
     fieldnames = Header.__members__.values()
-    rows = [get_invoice_data(invoice) for invoice in unique_invoices]
     with open(join("output", "data.csv"), "w") as output:
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
