@@ -24,6 +24,7 @@ class Header(StrEnum):
     EXEMPT = "Exento"
     RETENTIONS = "Retenciones"
     CONCEPT = "Concepto"
+    DAILY_SALARY = "Salario diario"
 
 
 def get_invoice_data(invoice: str):
@@ -37,6 +38,7 @@ def get_invoice_data(invoice: str):
     exempt = None
     retentions = None
     concept = None
+    daily_salary = None
 
     tree = ET.parse(invoice)
     BASE_PATH = "cfdi:Complemento/nomina12:Nomina"
@@ -45,7 +47,12 @@ def get_invoice_data(invoice: str):
     perception = tree.find(f"{BASE_PATH}/nomina12:Percepciones/nomina12:Percepcion", NS)
     deductions = tree.find(f"{BASE_PATH}/nomina12:Deducciones", NS)
     fiscal_signature = tree.find(f"cfdi:Complemento/tfd:TimbreFiscalDigital", NS)
+    receiver = tree.find(f"{BASE_PATH}/nomina12:Receptor", NS)
 
+    if receiver is not None:
+        daily_salary = receiver.get("SalarioDiarioIntegrado")
+        if daily_salary is None or float(daily_salary) == 0:
+            daily_salary = None
     if fiscal_signature is not None:
         uuid = fiscal_signature.get("UUID")
     if payroll is not None:
@@ -73,6 +80,7 @@ def get_invoice_data(invoice: str):
         Header.EXEMPT: exempt,
         Header.RETENTIONS: retentions,
         Header.CONCEPT: concept,
+        Header.DAILY_SALARY: daily_salary,
     }
 
 
