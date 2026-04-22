@@ -25,6 +25,7 @@ class Header(StrEnum):
     RETENTIONS = "Retenciones"
     CONCEPT = "Concepto"
     DAILY_SALARY = "Salario diario"
+    EMITTER = "Emisor"
 
 
 def get_invoice_data(invoice: str):
@@ -39,6 +40,7 @@ def get_invoice_data(invoice: str):
     retentions = None
     concept = None
     daily_salary = None
+    emitter_rfc_name = None
 
     tree = ET.parse(invoice)
     BASE_PATH = "cfdi:Complemento/nomina12:Nomina"
@@ -46,8 +48,9 @@ def get_invoice_data(invoice: str):
     perceptions = tree.find(f"{BASE_PATH}/nomina12:Percepciones", NS)
     perception = tree.find(f"{BASE_PATH}/nomina12:Percepciones/nomina12:Percepcion", NS)
     deductions = tree.find(f"{BASE_PATH}/nomina12:Deducciones", NS)
-    fiscal_signature = tree.find(f"cfdi:Complemento/tfd:TimbreFiscalDigital", NS)
+    fiscal_signature = tree.find("cfdi:Complemento/tfd:TimbreFiscalDigital", NS)
     receiver = tree.find(f"{BASE_PATH}/nomina12:Receptor", NS)
+    emitter = tree.find("cfdi:Emisor", NS)
 
     if receiver is not None:
         daily_salary = receiver.get("SalarioDiarioIntegrado")
@@ -68,6 +71,8 @@ def get_invoice_data(invoice: str):
         concept = perception.get("Concepto")
     if deductions is not None:
         retentions = deductions.get("TotalImpuestosRetenidos")
+    if emitter is not None:
+        emitter_rfc_name = f"{emitter.get("Rfc")} - {emitter.get("Nombre")}"
 
     return {
         Header.UUID: uuid,
@@ -81,6 +86,7 @@ def get_invoice_data(invoice: str):
         Header.RETENTIONS: retentions,
         Header.CONCEPT: concept,
         Header.DAILY_SALARY: daily_salary,
+        Header.EMITTER: emitter_rfc_name,
     }
 
 
